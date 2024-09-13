@@ -18,7 +18,7 @@ public class SimpleCalculator {
     // Method to divide two numbers
     public static Decimal divideNumbers(Integer num1, Integer num2) {
         if (num2 == 0) {
-            throw new IllegalArgumentException('Cannot divide by zero');
+            throw new IllegalArgumentException('Cannot divide by zero')
         }
         return (Decimal) num1 / num2
     }
