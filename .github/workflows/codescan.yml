@@ -4,7 +4,7 @@ run-name: ${{ github.actor }} is running the Github Actions 🚀
 ### push, pull_request
 on: 
    pull_request:
-    types: [opened]
+    types: [opened, reopened, synchronize]
     paths:
         - 'force-app/**'
     branches:
