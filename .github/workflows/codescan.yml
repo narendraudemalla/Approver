@@ -1,0 +1,51 @@
+name: Code Scan for feature branch 
+run-name: ${{ github.actor }} is running the Github Actions 🚀
+## Pipeline will be running mainly on 2 events most of the time 
+### push, pull_request
+on: 
+   pull_request:
+    types: [opened, reopened]
+    paths:
+        - 'force-app/main/default/classes'
+        - 'force-app/main/default/lwc'
+    branches:
+        - sit
+jobs:
+  build-and-deploy: ## Name of the Job
+    runs-on: ubuntu-latest ## Github Hosted [Self Hosted]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.1.7
+        with:
+          fetch-depth: 0
+      - name: npm install
+        run: npm install
+        ## Install Saleforce CLI
+      - name: Install Salesforce CLI
+        run: npm install @salesforce/cli --global
+      - name: Install Salesforce Code Anayzer
+        id: salesforce-cli-scanner
+        run: sf plugins install @salesforce/sfdx-scanner
+      - name: Run Salesforce Code Anayzer Scan
+        id: code-analyzer
+        run: |
+          mkdir reports
+          echo "Folder is created"
+          sf scanner run --format html --target force-app/main/default/classes --engine pmd,pmd-appexchange --category Design,Best Practices, Code Style,Performance,Security,Documentation, Error Prone --outfile reports/scan-reports.html
+          echo "Starting the scan in sarif format"
+          sf scanner run --format sarif --target force-app/main/default/classes --engine pmd,pmd-appexchange --category Design,Best Practices, Code Style,Performance,Security,Documentation, Error Prone --outfile reports/scan-reports.sarif
+          echo "Scanning is Completed"
+          
+      - name: Upload a Salesforce CLI Scan Report
+        id: upload-reports
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: cli-scan-report
+          path: reports/scan-reports.html
+      
+      
+  clean-up:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This is my second Job"
+        name: "Print Message"
