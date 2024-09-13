@@ -19,8 +19,8 @@ public class SimpleCalculator {
         if (num2 == 0) {
             throw new IllegalArgumentException('Cannot divide by zero');
         }
-        return (Decimal) num1 / num2;
+        return (Decimal) num1 / num2
     }
 }
 //comment
-//wi-000005
+//wi-00000
