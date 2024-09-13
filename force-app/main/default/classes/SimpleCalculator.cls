@@ -22,4 +22,3 @@ public class SimpleCalculator {
         return (Decimal) num1 / num2;
     }
 }
-//comment
