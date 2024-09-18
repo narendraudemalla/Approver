@@ -42,42 +42,28 @@ jobs:
         run: npm install @salesforce/cli --global
 
       - name: Install Salesforce Code Analyzer
-        id: salesforce-cli-scanner
         run: sf plugins install @salesforce/sfdx-scanner
 
-      
-
-      ## Upload the report results as artifacts
-      ##- name: Upload a Salesforce CLI Scan Report
-        #id: upload-reports
-        #uses: actions/upload-artifact@v4.4.0
-       # with:
-         # name: cli-scan-report
-          #path: reports/scan-reports.html
-
-      
-
+      ## Run PMD Scan and Generate XML Report
       - name: PMD SCAN
         id: pmd_scan
-        uses: pmd/pmd-github-action@v2
-        with:
-          rulesets: 'pmd/ruleset.xml'
-
-      
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: pmd-report.sarif
-
-      
-
-      - name: Fail build if there are violations
-        if: steps.pmd_scan.outputs.violations != 0
         run: |
-          echo "PMD Violations ${{steps.pmd_scan.outputs.violations}}"
-          echo "PMD outputs ${{toJSON(steps.pmd_scan.outputs)}}"
-          ##exit 1
+          mkdir -p pmd-reports
+          sfdx scanner:run --target "force-app" --format "xml" --output "pmd-reports"
+        
+      ## Upload PMD report as artifact
+      - name: Upload PMD Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: pmd-report
+          path: pmd-reports/
+
+      ## Check PMD Violations and Fail Build if Any
+      - name: Fail build if there are PMD violations
+        if: ${{ steps.pmd_scan.outputs.violations != 0 }}
+        run: |
+          echo "PMD Violations detected!"
+          exit 1
 
       ## Scan the code using SonarCloud
       - name: SonarCloud Scan
@@ -86,15 +72,43 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: "-Dsonar.apex.pmd.reportPaths=pmd-reports/pmd-report.xml"
 
+      ## Check SonarCloud Quality Gate status
+      - name: Check the Quality Gate
+        id: check_sonar_quality_gate
+        uses: SonarSource/sonarcloud-quality-gate-action@master
+        with:
+          projectKey: 'your_project_key'
+          organization: 'your_organization_key'
+          sonarHostUrl: 'https://sonarcloud.io'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        
+      ## Fail build if Quality Gate fails
+      - name: Fail build if Quality Gate fails
+        if: steps.check_sonar_quality_gate.outputs.quality_gate_status != 'OK'
+        run: |
+          echo "SonarCloud Quality Gate failed!"
+          exit 1
+
+      ## Run Salesforce CLI Tests and Generate Code Coverage Report
+      - name: Run Apex Tests and Generate Code Coverage
+        run: |
+          mkdir -p reports
+          sfdx force:apex:test:run --codecoverage --resultformat json --outputdir reports/
+
+      ## Decrypt the server.key.enc file
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
         
+      ## Authorize with Salesforce org
       - name: Authorize with Salesforce org
         run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
+      ## Validate the code against Salesforce Org
       - name: Validate The Code to Salesforce
-        ## Best is to have a separate Org for validation purpose
         run: sf project deploy validate --source-dir force-app --target-org Developer
 
   zap_scan:
@@ -112,9 +126,6 @@ jobs:
           target: 'https://test.salesforce.com'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
-
-      # - name: deploy
-      #   run: sf project deploy start --source-dir force-app --target-org ci-orgg
 
   clean-up:
     runs-on: ubuntu-latest
