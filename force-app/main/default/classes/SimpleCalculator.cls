@@ -1,40 +1,25 @@
 public class SimpleCalculator {
-    
-    // Vulnerable method that performs addition
-    public Integer add(String a, String b) {
-        try {
-            // Vulnerability: Converting string inputs directly to integers without validation
-            Integer num1 = Integer.valueOf(a);
-            Integer num2 = Integer.valueOf(b);
-            return num1 + num2;
-        } catch (Exception e) {
-            // Catch any exception and return null (poor error handling)
-            return null;
-        }
+    // Method to add two numbers
+    public static Integer addNumbers(Integer num1, Integer num2) {
+        return num1 + num2;
     }
 
-    // Vulnerable method that performs subtraction
-    public Integer subtract(String a, String b) {
-        try {
-            // Vulnerability: No input validation
-            Integer num1 = Integer.valueOf(a);
-            Integer num2 = Integer.valueOf(b);
-            return num1 - num2;
-        } catch (Exception e) {
-            return null;
-        }
+    // Method to subtract two numbers
+    public static Integer subtractNumbers(Integer num1, Integer num2) {
+        return num1 - num2;
     }
-    
-    // Method with SOQL Injection vulnerability
-    public List<Account> getAccountsByName(String accountName) {
-        try {
-            // Vulnerability: Directly inserting user input into SOQL query
-            String query = 'SELECT Id, Name FROM Account WHERE Name = \'' + accountName + '\'';
-            return Database.query(query);
-        } catch (Exception e) {
-            return null;
+
+    // Method to multiply two numbers
+    public static Integer multiplyNumbers(Integer num1, Integer num2) {
+        return num1 * num2;
+    }
+
+    // Method to divide two numbers
+    public static Decimal divideNumbers(Integer num1, Integer num2) {
+        if (num2 == 0) {
+            throw new IllegalArgumentException('Cannot divide by zero');
         }
+        return (Decimal) num1 / num2;
     }
 }
-//added vulnerability
-
+//comment
