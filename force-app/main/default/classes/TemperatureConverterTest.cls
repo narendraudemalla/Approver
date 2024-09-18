@@ -53,3 +53,4 @@ private class TemperatureConverterTest {
         System.assert(exceptionThrown, 'Expected an IllegalArgumentException to be thrown for null input.');
     }
 }
+//wi-000009
