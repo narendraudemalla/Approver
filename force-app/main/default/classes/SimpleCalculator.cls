@@ -1,7 +1,6 @@
 public class SimpleCalculator {
     // Method to add two numbers
     public static Integer addNumbers(Integer num1, Integer num2) {
-        string AccountName  = '4cl.com';
         return num1 + num2;
     }
 
