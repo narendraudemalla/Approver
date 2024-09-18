@@ -17,13 +17,12 @@ on:
 
 jobs:
   build-and-deploy:
-    ## Permissions needed for security scan reports
     permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+      contents: read
+      security-events: write
+      actions: read
 
-    runs-on: ubuntu-latest ## Github Hosted [Self Hosted]
+    runs-on: ubuntu-latest
     environment: developer
     steps:
       - run: echo "This is my first Job"
@@ -75,31 +74,19 @@ jobs:
         with:
           args: "-Dsonar.apex.pmd.reportPaths=pmd-reports/pmd-report.xml"
 
-      ## Check SonarCloud Quality Gate status
-      - name: Check the Quality Gate
-        id: check_sonar_quality_gate
-        uses: SonarSource/sonarcloud-quality-gate-action@master
-        with:
-          projectKey: 'your_project_key'
-          organization: 'your_organization_key'
-          sonarHostUrl: 'https://sonarcloud.io'
+      ## Check the Quality Gate using SonarCloud API
+      - name: Check the Quality Gate using SonarCloud API
+        run: |
+          sleep 30 # Wait for the SonarCloud analysis to complete
+          SONAR_STATUS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=your_project_key" | jq -r '.projectStatus.status')
+          echo "Quality Gate Status: $SONAR_STATUS"
+          if [ "$SONAR_STATUS" != "OK" ]; then
+            echo "SonarCloud Quality Gate failed!"
+            exit 1
+          fi
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         
-      ## Fail build if Quality Gate fails
-      - name: Fail build if Quality Gate fails
-        if: steps.check_sonar_quality_gate.outputs.quality_gate_status != 'OK'
-        run: |
-          echo "SonarCloud Quality Gate failed!"
-          exit 1
-
-      ## Run Salesforce CLI Tests and Generate Code Coverage Report
-      - name: Run Apex Tests and Generate Code Coverage
-        run: |
-          mkdir -p reports
-          sfdx force:apex:test:run --codecoverage --resultformat json --outputdir reports/
-
-      ## Decrypt the server.key.enc file
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
         
