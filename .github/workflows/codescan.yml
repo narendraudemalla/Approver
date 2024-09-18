@@ -102,11 +102,27 @@ jobs:
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
         
       - name: Authorize with Salesforce org
-        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias ci-org --instance-url ${{ secrets.SF_INSTANCE_URL }}
+        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
       - name: Validate The Code to Salesforce
         ## Best is to have a separate Org for validation purpose
-        run: sf project deploy validate --source-dir force-app --target-org ci-org
+        run: sf project deploy validate --source-dir force-app --target-org Developer
+
+  zap_scan:
+    runs-on: ubuntu-latest
+    name: Scan the web applications
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: master
+      - name: ZAP Scan
+        uses: zaproxy/action-baseline@v0.6.1
+        with:
+          docker_name: 'owasp/zap2docker-stable'
+          target: 'http://test.salesforce.com'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
 
       # - name: deploy
       #   run: sf project deploy start --source-dir force-app --target-org ci-org
