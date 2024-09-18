@@ -23,3 +23,4 @@ public class TemperatureConverter {
     // Custom exception class for specific error handling
     public class IllegalArgumentException extends Exception {}
 }
+//d
