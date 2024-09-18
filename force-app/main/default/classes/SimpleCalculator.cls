@@ -36,3 +36,4 @@ public class SimpleCalculator {
         }
     }
 }
+//added vulnerability
