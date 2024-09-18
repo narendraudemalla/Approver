@@ -71,6 +71,6 @@ public class SimpleCalculatorTest {
 
 // Added vulnerability
 
-//vuln
+//vul
 
 

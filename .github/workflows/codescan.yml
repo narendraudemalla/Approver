@@ -48,7 +48,7 @@ jobs:
         id: pmd_scan
         run: |
           mkdir -p pmd-reports
-          sfdx scanner:run --target "force-app" --format "xml" --output "pmd-reports"
+          sfdx scanner:run --target "force-app" --format "xml" --outfile "pmd-reports/pmd-report.xml"
         
       ## Upload PMD report as artifact
       - name: Upload PMD Report
