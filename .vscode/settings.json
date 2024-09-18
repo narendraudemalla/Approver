@@ -22,8 +22,11 @@
     "**/.exchange_modules_tmp": true,
     ".mule": true
   },
+
   "sonarlint.connectedMode.project": {
     "connectionId": "narendraudemalla",
     "projectKey": "narendraudemalla_Approver"
   }
+
+  "salesforcedx-vscode-apex.advanced.enable-completion-statistics": true
 }
