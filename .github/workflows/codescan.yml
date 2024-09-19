@@ -100,6 +100,25 @@ jobs:
             fi
           fi
 
+      - name: Run Salesforce Code Anayzer Scan
+        id: code-analyzer
+        run: |
+            mkdir reports
+            echo "Folder is created"
+            sf scanner run --format html --target force-app/main/default/classes --engine pmd,pmd-appexchange --category Design,Best Practices, Code Style,Performance,Security,Documentation, Error Prone --outfile reports/scan-reports.html
+            echo "Starting the scan in sarif format"
+            sf scanner run --format sarif --target force-app/main/default/classes --engine pmd,pmd-appexchange --category Design,Best Practices, Code Style,Performance,Security,Documentation, Error Prone --outfile reports/scan-reports.sarif
+            echo "Scanning is Completed"
+       
+        ## Upload the report results as artifacts
+      - name: Upload a Salesforce CLI Scan Report
+        id: upload-reports
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: cli-scan-report
+          path: reports/scan-reports.html
+   
+
       ## Run PMD Scan and Generate XML Report
       - name: PMD SCAN
         id: pmd_scan
@@ -124,6 +143,8 @@ jobs:
               exit 1
             fi
           fi
+
+      
 
       ## Scan the code using SonarCloud
       - name: SonarCloud Scan
