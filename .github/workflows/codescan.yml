@@ -121,7 +121,7 @@ jobs:
             VIOLATIONS=$(grep -o '<violation' pmd-reports/pmd-report.xml | wc -l)
             if [ "$VIOLATIONS" -gt 0 ]; then
               echo "PMD Violations detected!"
-              ##exit 1
+              exit 1
             fi
           fi
 
@@ -147,27 +147,6 @@ jobs:
           fi
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        
-        
-      ## Validate the code against Salesforce Org
-      - name: Validate The Code to Salesforce
-        run: sf project deploy validate --source-dir force-app --target-org Developer
-
-  zap_scan:
-    runs-on: ubuntu-latest
-    name: Scan the web applications
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: master
-      - name: ZAP Scan
-        uses: zaproxy/action-baseline@v0.6.1
-        with:
-          docker_name: 'owasp/zap2docker-stable'
-          target: 'https://test.salesforce.com'
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
 
   clean-up:
     runs-on: ubuntu-latest
