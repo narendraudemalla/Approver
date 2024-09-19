@@ -95,7 +95,7 @@ jobs:
               echo "Running tests for: $TEST_CLASSES"
               
               # Run tests only for the modified classes
-              sf apex run test --classnames "$TEST_CLASSES" --code-coverage --resultformat json --outputdir reports/
+              sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30 --synchronous
             fi
           fi
 
