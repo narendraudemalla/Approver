@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} is running the Github Actions 🚀
 
 on: 
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened, synchronize] #closed  --> closed/merged
     paths:
       - 'force-app/**'
     branches:
@@ -43,7 +43,8 @@ jobs:
         run: |
           echo 'y' | sf plugins install sfdx-git-delta
 
-      ## Authorize with Salesforce org
+
+       ## Authorize with Salesforce org
       - name: Authorize with Salesforce org
         run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
@@ -57,44 +58,6 @@ jobs:
           cat delta/package/package.xml
           ls delta
 
-      ## Identify and Run Tests for Modified Apex Classes
-      - name: Run the test coverage for modified classes
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          mkdir -p reports
-          # Find modified Apex classes from the delta directory
-          MODIFIED_CLASSES=$(find delta/force-app/main/default/classes -name '*.cls')
-          
-          if [ -z "$MODIFIED_CLASSES" ]; then
-            echo "No Apex classes modified."
-          else
-            echo "Modified Apex classes: $MODIFIED_CLASSES"
-            
-            # Identify related test classes and run them
-            TEST_CLASSES=""
-            for CLASS_PATH in $MODIFIED_CLASSES; do
-              # Extract class name from file path and assume test class naming convention: ClassNameTest.cls
-              CLASS_NAME=$(basename $CLASS_PATH .cls)
-              TEST_CLASS="${CLASS_NAME}Test"
-              
-              # Check if the corresponding test class exists
-              if [ -f "force-app/main/default/classes/${TEST_CLASS}.cls" ]; then
-                TEST_CLASSES="$TEST_CLASSES,$TEST_CLASS"
-              fi
-            done
-            
-            # Remove leading comma
-            TEST_CLASSES=${TEST_CLASSES#,}
-            
-            if [ -z "$TEST_CLASSES" ]; then
-              echo "No test classes found for modified classes."
-            else
-              echo "Running tests for: $TEST_CLASSES"
-              
-              # Run tests only for the modified classes
-              sf apex run test --classnames "$TEST_CLASSES" --code-coverage --resultformat json --outputdir reports/
-            fi
-          fi
 
       ## Run PMD Scan and Generate XML Report
       - name: PMD SCAN
@@ -112,15 +75,15 @@ jobs:
 
       ## Check PMD Violations and Fail Build if Any
       - name: Fail build if there are PMD violations
+        if: ${{ steps.pmd_scan.outputs.violations != 0 }}
         run: |
-          if [ -f "pmd-reports/pmd-report.xml" ]; then
-            VIOLATIONS=$(grep -o '<violation' pmd-reports/pmd-report.xml | wc -l)
-            if [ "$VIOLATIONS" -gt 0 ]; then
-              echo "PMD Violations detected!"
-              exit 1
-            fi
-          fi
+          echo "PMD Violations detected!"
+          exit 1
+      - name: Run the test coverage
+        run: sf apex run test --suite-names MySuite --suite-names MyOtherSuite --code-coverage --detailed-coverage
 
+        ## we need to find out the which class 
+        ## we have to run only the modified class coverage should run the test class
       ## Scan the code using SonarCloud
       - name: SonarCloud Scan
         id: sonar
@@ -147,6 +110,10 @@ jobs:
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
         
+      ## Authorize with Salesforce org
+      - name: Authorize with Salesforce org
+        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
+
       ## Validate the code against Salesforce Org
       - name: Validate The Code to Salesforce
         run: sf project deploy validate --source-dir force-app --target-org Developer
