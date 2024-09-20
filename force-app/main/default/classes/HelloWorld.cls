@@ -8,8 +8,8 @@
 public class HelloWorld {
     
     /**
-     * Method to print "Hello, World!" to the debug log.
-     * Logs a message using LoggingLevel.INFO.
+     * @description Bar
+     * @return Bar
      */
     public static void sayHello() {
         // Use LoggingLevel to categorize the debug statement
