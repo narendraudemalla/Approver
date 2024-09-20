@@ -100,6 +100,14 @@ jobs:
             fi
           fi
 
+      - name: Upload code coverage for Apex to Codecov.io
+        id: upload-coverage
+        uses: codecov/codecov-action@v4
+        with:
+          flags: Apex
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Run Salesforce Code Anayzer Scan
         id: code-analyzer
         run: |
