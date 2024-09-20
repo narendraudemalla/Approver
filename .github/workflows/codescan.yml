@@ -96,7 +96,7 @@ jobs:
               
               # Run tests only for the modified classes
               ##sf apex run test --class-names $TEST_CLASSES  --target-org Developer --code-coverage --result-format json --output-dir reports/ --wait 30
-              sf apex run test --target-org Developer --test-level RunSpecifiedTests --tests  HelloWorld,HelloWorldTest --code-coverage --result-format human -d ./coverage --wait 10
+              sf apex run test --target-org Developer --test-level RunSpecifiedTests --tests  HelloWorld,HelloWorldTest --code-coverage --result-format human -d ./ --wait 10
             fi
           fi
 
