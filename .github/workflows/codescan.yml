@@ -158,7 +158,7 @@ jobs:
       - name: Check the Quality Gate using SonarCloud API
         run: |
           sleep 30 # Wait for the SonarCloud analysis to complete
-          SONAR_STATUS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=your_project_key" | jq -r '.projectStatus.status')
+          SONAR_STATUS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=narendraudemalla_Approver" | jq -r '.projectStatus.status')
           echo "Quality Gate Status: $SONAR_STATUS"
           if [ "$SONAR_STATUS" != "OK" ]; then
             echo "SonarCloud Quality Gate failed!"
