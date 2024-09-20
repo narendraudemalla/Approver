@@ -13,6 +13,6 @@ public class HelloWorld {
      */
     public static void sayHello() {
         // Use LoggingLevel to categorize the debug statement
-        System.debug(LoggingLevel.INFO, 'Hello, World!');
+        integer i = 5;
     }
 }
