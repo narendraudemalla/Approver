@@ -91,12 +91,12 @@ jobs:
             
             if [ -z "$TEST_CLASSES" ]; then
               echo "No test classes found for modified classes."
+              echo "Skipping test execution as no relevant test classes are found."
             else
               echo "Running tests for: $TEST_CLASSES"
               
               # Run tests only for the modified classes
               sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30
-
             fi
           fi
 
