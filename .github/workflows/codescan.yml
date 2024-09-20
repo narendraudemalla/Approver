@@ -9,21 +9,14 @@ on:
     branches:
       - sit
 
-  push:
-    paths:
-      - 'force-app/**'
-    branches:
-      - WI/*
-
 jobs:
   build-and-deploy:
-    ## Permissions needed for security scan reports
     permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+      contents: read
+      security-events: write
+      actions: read
 
-    runs-on: ubuntu-latest ## Github Hosted [Self Hosted]
+    runs-on: ubuntu-latest
     environment: developer
     steps:
       - run: echo "This is my first Job"
@@ -42,42 +35,95 @@ jobs:
         run: npm install @salesforce/cli --global
 
       - name: Install Salesforce Code Analyzer
-        id: salesforce-cli-scanner
         run: sf plugins install @salesforce/sfdx-scanner
 
-      
+      - name: Installing the sfdx-git-delta plugin
+        id: install-sfdx-delta-plugin
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          echo 'y' | sf plugins install sfdx-git-delta
 
-      ## Upload the report results as artifacts
-      ##- name: Upload a Salesforce CLI Scan Report
-        #id: upload-reports
-        #uses: actions/upload-artifact@v4.4.0
-       # with:
-         # name: cli-scan-report
-          #path: reports/scan-reports.html
+      - name: Decrypt the server.key.enc file
+        run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
 
-      
+      ## Authorize with Salesforce org
+      - name: Authorize with Salesforce org
+        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
+      - name: Generate the package.xml for delta files
+        id: generate-delta-files
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          mkdir delta
+          sf sgd source delta --to "HEAD" --from "HEAD~1" --output "./delta" --ignore-whitespace -d -i .sgdignore
+          echo "--- package.xml generated with added and modified metadata ---"
+          cat delta/package/package.xml
+          ls delta
+
+      ## Identify and Run Tests for Modified Apex Classes
+      - name: Run the test coverage for modified classes
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          mkdir -p reports
+          # Find modified Apex classes from the delta directory
+          MODIFIED_CLASSES=$(find delta/force-app/main/default/classes -name '*.cls')
+          
+          if [ -z "$MODIFIED_CLASSES" ]; then
+            echo "No Apex classes modified."
+          else
+            echo "Modified Apex classes: $MODIFIED_CLASSES"
+            
+            # Identify related test classes and run them
+            TEST_CLASSES=""
+            for CLASS_PATH in $MODIFIED_CLASSES; do
+              # Extract class name from file path and assume test class naming convention: ClassNameTest.cls
+              CLASS_NAME=$(basename $CLASS_PATH .cls)
+              TEST_CLASS="${CLASS_NAME}Test"
+              
+              # Check if the corresponding test class exists
+              if [ -f "force-app/main/default/classes/${TEST_CLASS}.cls" ]; then
+                TEST_CLASSES="$TEST_CLASSES,$TEST_CLASS"
+              fi
+            done
+            
+            # Remove leading comma
+            TEST_CLASSES=${TEST_CLASSES#,}
+            
+            if [ -z "$TEST_CLASSES" ]; then
+              echo "No test classes found for modified classes."
+            else
+              echo "Running tests for: $TEST_CLASSES"
+              
+              # Run tests only for the modified classes
+              sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30
+
+            fi
+          fi
+
+      ## Run PMD Scan and Generate XML Report
       - name: PMD SCAN
         id: pmd_scan
-        uses: pmd/pmd-github-action@v2
-        with:
-          rulesets: 'pmd/ruleset.xml'
-
-      
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: pmd-report.sarif
-
-      
-
-      - name: Fail build if there are violations
-        if: steps.pmd_scan.outputs.violations != 0
         run: |
-          echo "PMD Violations ${{steps.pmd_scan.outputs.violations}}"
-          echo "PMD outputs ${{toJSON(steps.pmd_scan.outputs)}}"
-          ##exit 1
+          mkdir -p pmd-reports
+          sfdx scanner:run --target "force-app" --format "xml" --outfile "pmd-reports/pmd-report.xml"
+        
+      ## Upload PMD report as artifact
+      - name: Upload PMD Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: pmd-report
+          path: pmd-reports/
+
+      ## Check PMD Violations and Fail Build if Any
+      - name: Fail build if there are PMD violations
+        run: |
+          if [ -f "pmd-reports/pmd-report.xml" ]; then
+            VIOLATIONS=$(grep -o '<violation' pmd-reports/pmd-report.xml | wc -l)
+            if [ "$VIOLATIONS" -gt 0 ]; then
+              echo "PMD Violations detected!"
+              exit 1
+            fi
+          fi
 
       ## Scan the code using SonarCloud
       - name: SonarCloud Scan
@@ -86,35 +132,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      - name: Decrypt the server.key.enc file
-        run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
-        
-      - name: Authorize with Salesforce org
-        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
-
-      - name: Validate The Code to Salesforce
-        ## Best is to have a separate Org for validation purpose
-        run: sf project deploy validate --source-dir force-app --target-org Developer
-
-  zap_scan:
-    runs-on: ubuntu-latest
-    name: Scan the web applications
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
         with:
-          ref: master
-      - name: ZAP Scan
-        uses: zaproxy/action-baseline@v0.6.1
-        with:
-          docker_name: 'owasp/zap2docker-stable'
-          target: 'http://test.salesforce.com'
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
+          args: "-Dsonar.apex.coverage.reportPath=reports/test-result-codecoverage.json"
 
-      # - name: deploy
-      #   run: sf project deploy start --source-dir force-app --target-org ci-orgg
+      ## Check the Quality Gate using SonarCloud API
+      - name: Check the Quality Gate using SonarCloud API
+        run: |
+          sleep 30 # Wait for the SonarCloud analysis to complete
+          SONAR_STATUS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=your_project_key" | jq -r '.projectStatus.status')
+          echo "Quality Gate Status: $SONAR_STATUS"
+          if [ "$SONAR_STATUS" != "OK" ]; then
+            echo "SonarCloud Quality Gate failed!"
+            exit 1
+          fi
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   clean-up:
     runs-on: ubuntu-latest
