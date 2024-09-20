@@ -9,7 +9,7 @@ public class HelloWorld {
     
     /**
      * @description Bar
-     * @return Bar
+     *
      */
     public static void sayHello() {
         // Use LoggingLevel to categorize the debug statement
