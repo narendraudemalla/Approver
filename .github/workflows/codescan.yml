@@ -65,39 +65,44 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           mkdir -p reports
-          # Find modified Apex classes from the delta directory
-          MODIFIED_CLASSES=$(find delta/force-app/main/default/classes -name '*.cls')
-          
-          if [ -z "$MODIFIED_CLASSES" ]; then
-            echo "No Apex classes modified."
-          else
-            echo "Modified Apex classes: $MODIFIED_CLASSES"
+          # Check if the delta/force-app/main/default/classes directory exists
+          if [ -d "delta/force-app/main/default/classes" ]; then
+            # Find modified Apex classes from the delta directory
+            MODIFIED_CLASSES=$(find delta/force-app/main/default/classes -name '*.cls')
             
-            # Identify related test classes and run them
-            TEST_CLASSES=""
-            for CLASS_PATH in $MODIFIED_CLASSES; do
-              # Extract class name from file path and assume test class naming convention: ClassNameTest.cls
-              CLASS_NAME=$(basename $CLASS_PATH .cls)
-              TEST_CLASS="${CLASS_NAME}Test"
-              
-              # Check if the corresponding test class exists
-              if [ -f "force-app/main/default/classes/${TEST_CLASS}.cls" ]; then
-                TEST_CLASSES="$TEST_CLASSES,$TEST_CLASS"
-              fi
-            done
-            
-            # Remove leading comma
-            TEST_CLASSES=${TEST_CLASSES#,}
-            
-            if [ -z "$TEST_CLASSES" ]; then
-              echo "No test classes found for modified classes."
-              echo "Skipping test execution as no relevant test classes are found."
+            if [ -z "$MODIFIED_CLASSES" ]; then
+              echo "No Apex classes modified."
             else
-              echo "Running tests for: $TEST_CLASSES"
+              echo "Modified Apex classes: $MODIFIED_CLASSES"
               
-              # Run tests only for the modified classes
-              sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30
+              # Identify related test classes and run them
+              TEST_CLASSES=""
+              for CLASS_PATH in $MODIFIED_CLASSES; do
+                # Extract class name from file path and assume test class naming convention: ClassNameTest.cls
+                CLASS_NAME=$(basename $CLASS_PATH .cls)
+                TEST_CLASS="${CLASS_NAME}Test"
+                
+                # Check if the corresponding test class exists
+                if [ -f "force-app/main/default/classes/${TEST_CLASS}.cls" ]; then
+                  TEST_CLASSES="$TEST_CLASSES,$TEST_CLASS"
+                fi
+              done
+              
+              # Remove leading comma
+              TEST_CLASSES=${TEST_CLASSES#,}
+              
+              if [ -z "$TEST_CLASSES" ]; then
+                echo "No test classes found for modified classes."
+                echo "Skipping test execution as no relevant test classes are found."
+              else
+                echo "Running tests for: $TEST_CLASSES"
+                
+                # Run tests only for the modified classes
+                sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30
+              fi
             fi
+          else
+            echo "No modified Apex classes found in the delta. Skipping test execution."
           fi
 
       ## Run PMD Scan and Generate XML Report
