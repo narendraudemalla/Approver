@@ -102,6 +102,7 @@ jobs:
           else
             echo "No modified Apex classes found in the delta. Skipping test execution."
           fi
+
       ## Run PMD Scan for only the pull request changes and Generate XML Report
       - name: PMD SCAN for Pull Request Changes
         id: pmd_scan
@@ -159,7 +160,6 @@ jobs:
             SONAR_STATUS=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=narendraudemalla_Approver&pullRequest=$PR_NUMBER" | jq -r '.projectStatus.status')
             RETRIES=$((RETRIES + 1))
           done
-          
           echo "Quality Gate Status: $SONAR_STATUS"
           if [ "$SONAR_STATUS" != "OK" ]; then
             echo "SonarCloud Quality Gate failed!"
