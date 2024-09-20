@@ -65,6 +65,8 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           mkdir -p reports
+          # Check if the delta/force-app/main/default/classes directory exists
+          if [ -d "delta/force-app/main/default/classes" ]; then
           # Find modified Apex classes from the delta directory
           MODIFIED_CLASSES=$(find delta/force-app/main/default/classes -name '*.cls')
           
@@ -91,21 +93,32 @@ jobs:
             
             if [ -z "$TEST_CLASSES" ]; then
               echo "No test classes found for modified classes."
+              echo "Skipping test execution as no relevant test classes are found."
             else
               echo "Running tests for: $TEST_CLASSES"
               
               # Run tests only for the modified classes
               sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30
-
             fi
+            fi
+          else
+            echo "No modified Apex classes found in the delta. Skipping test execution."
           fi
 
-      ## Run PMD Scan and Generate XML Report
-      - name: PMD SCAN
+      ## Run PMD Scan for only the pull request changes and Generate XML Report
+      - name: PMD SCAN for Pull Request Changes
         id: pmd_scan
         run: |
           mkdir -p pmd-reports
-          sfdx scanner:run --target "force-app" --format "xml" --outfile "pmd-reports/pmd-report.xml"
+          # Run PMD only on the modified files in the delta directory
+          MODIFIED_FILES=$(find delta/force-app -type f -name '*.cls' -o -name '*.trigger' -o -name '*.page' -o -name '*.component')
+          
+          if [ -z "$MODIFIED_FILES" ]; then
+            echo "No relevant files to scan for PMD violations."
+          else
+            echo "Running PMD scan on modified files: $MODIFIED_FILES"
+            sfdx scanner:run --target $MODIFIED_FILES --format "xml" --outfile "pmd-reports/pmd-report.xml"
+          fi
         
       ## Upload PMD report as artifact
       - name: Upload PMD Report
@@ -139,7 +152,7 @@ jobs:
       - name: Check the Quality Gate using SonarCloud API
         run: |
           sleep 30 # Wait for the SonarCloud analysis to complete
-          SONAR_STATUS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=your_project_key" | jq -r '.projectStatus.status')
+          SONAR_STATUS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=narendraudemalla_Approver" | jq -r '.projectStatus.status')
           echo "Quality Gate Status: $SONAR_STATUS"
           if [ "$SONAR_STATUS" != "OK" ]; then
             echo "SonarCloud Quality Gate failed!"
