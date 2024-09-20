@@ -95,8 +95,8 @@ jobs:
               echo "Running tests for: $TEST_CLASSES"
               
               # Run tests only for the modified classes
-              sf apex run test --class-names $TEST_CLASSES  --target-org Developer --code-coverage --result-format json --output-dir reports/ --wait 30
-
+              ##sf apex run test --class-names $TEST_CLASSES  --target-org Developer --code-coverage --result-format json --output-dir reports/ --wait 30
+              sf apex run test --target-org Developer --test-level RunSpecifiedTests --tests  HelloWorld,HelloWorldTest --code-coverage --result-format human -d ./coverage --wait 10
             fi
           fi
 
@@ -152,9 +152,7 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: "-Dsonar.apex.coverage.reportPath=$(pwd)/reports/test-result-codecoverage.json"
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  
 
       ## Check the Quality Gate using SonarCloud API
       - name: Check the Quality Gate using SonarCloud API
