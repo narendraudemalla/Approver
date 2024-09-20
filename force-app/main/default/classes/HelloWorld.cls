@@ -14,5 +14,8 @@ public class HelloWorld {
     public static void sayHello() {
         // Use LoggingLevel to categorize the debug statement
         integer i = 5;
+        if (i == 5) {
+            i++;
+        }  
     }
 }
