@@ -43,6 +43,13 @@ jobs:
         run: |
           echo 'y' | sf plugins install sfdx-git-delta
 
+          - name: Decrypt the server.key.enc file
+          run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
+  
+        ## Authorize with Salesforce org
+      - name: Authorize with Salesforce org
+        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
+
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
 
@@ -98,7 +105,7 @@ jobs:
               echo "Running tests for: $TEST_CLASSES"
               
               # Run tests only for the modified classes
-              sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30
+              sf apex run test --class-names $TEST_CLASSES --code-coverage  --target-org Developer --result-format json --output-dir reports/ --wait 30
             fi
             fi
           else
