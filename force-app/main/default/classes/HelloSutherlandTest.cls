@@ -7,7 +7,7 @@ public class HelloSutherlandTest {
         Test.startTest();
         
         // Call the HelloWorld.sayHello() method
-        HelloNarendra.sayHello();
+        HelloSutherland.sayHello();
         
         // Since we cannot directly verify debug logs in tests, we assert true
         // to ensure that the method executed without throwing an exception
