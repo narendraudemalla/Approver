@@ -4,7 +4,7 @@ run-name: ${{ github.actor }} is running the Github Actions 🚀
 
 on:
     workflow_run:
-      workflows: ["Code Quality Test and Test coverage"]  # The name of the first workflow
+      workflows: ["PMD Scan Sonar "]  # The name of the first workflow
       types:
         - completed
 

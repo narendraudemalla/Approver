@@ -1,4 +1,4 @@
-name: PMD scan
+name: PMD Scan Sonar 
 run-name: ${{ github.actor }} is running the Github Actions 🚀
 
 on: 
