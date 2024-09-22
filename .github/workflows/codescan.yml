@@ -17,7 +17,7 @@ jobs:
       actions: read
 
     runs-on: ubuntu-latest
-    environment: sit
+    environment: [developer, sit]
     steps:
       - run: echo "This is my first Job"
         name: "First Job Message"
@@ -43,8 +43,8 @@ jobs:
         run: |
           echo 'y' | sf plugins install sfdx-git-delta
 
-          - name: Decrypt the server.key.enc file
-          run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
+      - name: Decrypt the server.key.enc file
+        run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
   
         ## Authorize with Salesforce org
       - name: Authorize with Salesforce org
