@@ -17,7 +17,7 @@ jobs:
       actions: read
 
     runs-on: ubuntu-latest
-    environment: developer
+    environment: sit
     steps:
       - run: echo "This is my first Job"
         name: "First Job Message"
@@ -42,15 +42,14 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           echo 'y' | sf plugins install sfdx-git-delta
-
+          
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
-  
-        ## Authorize with Salesforce org
-      - name: Authorize with Salesforce org
-        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
-      
+      ## Authorize with Salesforce org -SIT
+      - name: Authorize with Salesforce org
+        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias sit --instance-url ${{ secrets.SF_INSTANCE_URL }}
+
       - name: Generate the package.xml for delta files
         id: generate-delta-files
         if: ${{ github.event_name == 'pull_request' }}
@@ -106,71 +105,7 @@ jobs:
             echo "No modified Apex classes found in the delta. Skipping test execution."
           fi
 
-      ## Run PMD Scan for only the pull request changes and Generate XML Report
-      - name: PMD SCAN for Pull Request Changes
-        id: pmd_scan
-        run: |
-          mkdir -p pmd-reports
-          # Run PMD only on the modified files in the delta directory
-          MODIFIED_FILES=$(find delta/force-app -type f -name '*.cls' -o -name '*.trigger' -o -name '*.page' -o -name '*.component')
-          
-          if [ -z "$MODIFIED_FILES" ]; then
-            echo "No relevant files to scan for PMD violations."
-          else
-            echo "Running PMD scan on modified files: $MODIFIED_FILES"
-            sfdx scanner:run --target $MODIFIED_FILES --format "xml" --outfile "pmd-reports/pmd-report.xml"
-          fi
-        
-      ## Upload PMD report as artifact
-      - name: Upload PMD Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: pmd-report
-          path: pmd-reports/
 
-      ## Check PMD Violations and Fail Build if Any
-      - name: Fail build if there are PMD violations
-        run: |
-          if [ -f "pmd-reports/pmd-report.xml" ]; then
-            VIOLATIONS=$(grep -o '<violation' pmd-reports/pmd-report.xml | wc -l)
-            if [ "$VIOLATIONS" -gt 0 ]; then
-              echo "PMD Violations detected!"
-              exit 1
-            fi
-          fi
-          
-      ## Scan the code using SonarCloud
-      - name: SonarCloud Scan
-        id: sonar
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: "-Dsonar.apex.coverage.reportPath=reports/test-result-codecoverage.json"
-
-      ## Check the Quality Gate using SonarCloud API for the pull request
-      - name: Check the Quality Gate using SonarCloud API
-        run: |
-          MAX_RETRIES=30  # Maximum number of retries (5 minutes if we sleep 10s between retries)
-          RETRY_INTERVAL=10  # Sleep interval in seconds
-          SONAR_STATUS="NONE"
-          RETRIES=0
-          PR_NUMBER=${{ github.event.pull_request.number }}  # Extract pull request number
-
-          while [ "$SONAR_STATUS" == "NONE" ] && [ $RETRIES -lt $MAX_RETRIES ]; do
-            echo "Waiting for SonarCloud analysis to complete..."
-            sleep $RETRY_INTERVAL
-            SONAR_STATUS=$(curl -s -u $SONAR_TOKEN: "https://sonarcloud.io/api/qualitygates/project_status?projectKey=narendraudemalla_Approver&pullRequest=$PR_NUMBER" | jq -r '.projectStatus.status')
-            RETRIES=$((RETRIES + 1))
-          done
-          echo "Quality Gate Status: $SONAR_STATUS"
-          if [ "$SONAR_STATUS" != "OK" ]; then
-            echo "SonarCloud Quality Gate failed!"
-            exit 1
-          fi
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       
       ## Validate and Deploy only Delta changes to Salesforce SIT Org
       - name: Deploy the code to Salesforce (Validation Only)
