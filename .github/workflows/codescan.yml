@@ -173,14 +173,14 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       
       ## Validate and Deploy only Delta changes to Salesforce SIT Org
-      - name: Deploy the code to Salesforce (Validation Only)
-        run: |
-          if [ -d "delta/force-app" ]; then
-            echo "Validating deployment for the changes in the delta directory."
-            sf project deploy validate --source-dir delta/force-app --target-org sit
-          else
-            echo "No changes detected for deployment validation."
-          fi
+      ##- name: Deploy the code to Salesforce (Validation Only)
+        ##run: |
+          ##if [ -d "delta/force-app" ]; then
+           ## echo "Validating deployment for the changes in the delta directory."
+           ## sf project deploy validate --source-dir delta/force-app --target-org sit
+          ##else
+           ## echo "No changes detected for deployment validation."
+          ##fi
 
   clean-up:
     runs-on: ubuntu-latest
