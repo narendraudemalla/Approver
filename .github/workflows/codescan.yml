@@ -17,7 +17,7 @@ jobs:
       actions: read
 
     runs-on: ubuntu-latest
-    environment: developer
+    environment: sit
     steps:
       - run: echo "This is my first Job"
         name: "First Job Message"
@@ -42,12 +42,13 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           echo 'y' | sf plugins install sfdx-git-delta
+
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
 
-      ## Authorize with Salesforce org
+      ## Authorize with Salesforce org -SIT
       - name: Authorize with Salesforce org
-        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
+        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias sit --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
       - name: Generate the package.xml for delta files
         id: generate-delta-files
@@ -58,6 +59,7 @@ jobs:
           echo "--- package.xml generated with added and modified metadata ---"
           cat delta/package/package.xml
           ls delta
+          
       ## Identify and Run Tests for Modified Apex Classes
       - name: Run the test coverage for modified classes
         if: ${{ github.event_name == 'pull_request' }}
@@ -135,6 +137,7 @@ jobs:
               exit 1
             fi
           fi
+          
       ## Scan the code using SonarCloud
       - name: SonarCloud Scan
         id: sonar
@@ -167,6 +170,16 @@ jobs:
           fi
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      
+      ## Validate and Deploy only Delta changes to Salesforce SIT Org
+      - name: Deploy the code to Salesforce (Validation Only)
+        run: |
+          if [ -d "delta/force-app" ]; then
+            echo "Validating deployment for the changes in the delta directory."
+            sf project deploy validate --source-dir delta/force-app --target-org sit
+          else
+            echo "No changes detected for deployment validation."
+          fi
 
   clean-up:
     runs-on: ubuntu-latest
