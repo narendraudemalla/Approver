@@ -11,7 +11,7 @@ public class HelloSutherlandTest {
         
         // Since we cannot directly verify debug logs in tests, we assert true
         // to ensure that the method executed without throwing an exception
-        System.assert(true, 'Test passed: HelloWorld.sayHello() executed successfully.');
+        System.assert(true, 'Test passed: HelloSutherland.sayHello() executed successfully.');
         
         // End the test context
         Test.stopTest();
