@@ -1,4 +1,4 @@
-name: Code Validation
+name: Code Quality Test and Test coverage
 run-name: ${{ github.actor }} is running the Github Actions 🚀
 
 on: 
@@ -17,7 +17,7 @@ jobs:
       actions: read
 
     runs-on: ubuntu-latest
-    environment: sit
+    environment: developer
     steps:
       - run: echo "This is my first Job"
         name: "First Job Message"
@@ -45,11 +45,12 @@ jobs:
 
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
-
-      ## Authorize with Salesforce org -SIT
+  
+        ## Authorize with Salesforce org
       - name: Authorize with Salesforce org
-        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias sit --instance-url ${{ secrets.SF_INSTANCE_URL }}
+        run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --alias Developer --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
+      
       - name: Generate the package.xml for delta files
         id: generate-delta-files
         if: ${{ github.event_name == 'pull_request' }}
@@ -98,7 +99,7 @@ jobs:
               echo "Running tests for: $TEST_CLASSES"
               
               # Run tests only for the modified classes
-              sf apex run test --class-names $TEST_CLASSES --code-coverage --result-format json --output-dir reports/ --wait 30
+              sf apex run test --class-names $TEST_CLASSES --code-coverage  --target-org Developer --result-format json --output-dir reports/ --wait 30
             fi
             fi
           else
