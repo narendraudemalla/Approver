@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 name: SIT Validation
 =======
 name: Code Quality Test and Test coverage
@@ -7,6 +8,12 @@ run-name: ${{ github.actor }} is running the Github Actions 🚀
 
 
 <<<<<<< HEAD
+=======
+name: SIT Validation
+run-name: ${{ github.actor }} is running the Github Actions 🚀
+
+
+>>>>>>> 6d32a0e003e29921559d4df3be9e9e320b21b3fb
 on:
     workflow_run:
       workflows: ["Code Quality Test and Test coverage"]  # The name of the first workflow
@@ -24,10 +31,14 @@ jobs:
 
     runs-on: ubuntu-latest
 <<<<<<< HEAD
+<<<<<<< HEAD
     environment: sit
 =======
     environment: developer
 >>>>>>> de6b90de7def23aebfe165e07ceea52a588a2373
+=======
+    environment: sit
+>>>>>>> 6d32a0e003e29921559d4df3be9e9e320b21b3fb
     steps:
       - run: echo "This is my first Job"
         name: "First Job Message"
@@ -56,11 +67,15 @@ jobs:
       - name: Decrypt the server.key.enc file
         run: openssl enc -nosalt -aes-256-cbc -d -in ${{ secrets.ENCRYPTED_KEY_FILE }} -out ${{ secrets.JWT_KEY_FILE }} -base64 -K ${{ secrets.KEY }} -iv ${{ secrets.IV }}
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 6d32a0e003e29921559d4df3be9e9e320b21b3fb
 
       ## Authorize with Salesforce org -SIT
       - name: Authorize with Salesforce org
         run: sf org login jwt --username ${{ secrets.SF_USERNAME }} --jwt-key-file ${{ secrets.JWT_KEY_FILE }} --client-id ${{ secrets.SF_CLIENT_ID }} --set-default --alias sit --instance-url ${{ secrets.SF_INSTANCE_URL }}
 
+<<<<<<< HEAD
 =======
   
         ## Authorize with Salesforce org
@@ -69,6 +84,8 @@ jobs:
 
       
 >>>>>>> de6b90de7def23aebfe165e07ceea52a588a2373
+=======
+>>>>>>> 6d32a0e003e29921559d4df3be9e9e320b21b3fb
       - name: Generate the package.xml for delta files
         id: generate-delta-files
         if: ${{ github.event_name == 'pull_request' }}
@@ -79,6 +96,7 @@ jobs:
           cat delta/package/package.xml
           ls delta
           
+<<<<<<< HEAD
 <<<<<<< HEAD
       
 
@@ -194,6 +212,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 >>>>>>> de6b90de7def23aebfe165e07ceea52a588a2373
+=======
+      
+
+>>>>>>> 6d32a0e003e29921559d4df3be9e9e320b21b3fb
       
       ## Validate and Deploy only Delta changes to Salesforce SIT Org
       - name: Deploy the code to Salesforce (Validation Only)
